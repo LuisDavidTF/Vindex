@@ -4,6 +4,7 @@ import { Modal, Portal, Text, Button, TextInput, useTheme } from 'react-native-p
 import { useProductStore } from '../../store/useProductStore';
 import AutocompleteInput from './AutocompleteInput';
 import MonthYearPicker from './MonthYearPicker';
+import { Calendar } from 'lucide-react-native';
 import { Product } from '../../../domain/entities/Product';
 
 interface AddProductModalProps {
@@ -192,7 +193,7 @@ export default function AddProductModal({ visible, onDismiss, productToEdit }: A
                                     style={styles.input}
                                     placeholder="Seleccionar Fecha"
                                     editable={false} // Disable typing, force picker
-                                    right={<TextInput.Icon icon="calendar" onPress={handleOpenDatePicker} />}
+                                    right={<TextInput.Icon icon={() => <Calendar size={24} color={theme.colors.onSurface} />} onPress={handleOpenDatePicker} />}
                                 />
                             </TouchableOpacity>
                         </View>

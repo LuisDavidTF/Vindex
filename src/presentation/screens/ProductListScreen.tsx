@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { View, FlatList, StyleSheet, ScrollView } from 'react-native';
 import { Text, FAB, Card, Button, Avatar, useTheme, Chip, Searchbar } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import { Plus, AlertCircle, XCircle, Search } from 'lucide-react-native';
 import { useProductStore } from '../store/useProductStore';
 import AddProductModal from '../components/ui/AddProductModal';
 import { formatMexicanDate, calculateExpirationStatus, getStatusColor, getStatusLabel } from '../../domain/logic/expirationLogic';
@@ -93,6 +94,7 @@ export default function ProductListScreen() {
                     value={searchQuery}
                     style={styles.searchBar}
                     elevation={1}
+                    icon={({ size, color }) => <Search size={size} color={color} />}
                 />
                 <View style={styles.filterContainer}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
@@ -108,7 +110,7 @@ export default function ProductListScreen() {
                             selected={filterStatus === 'warning'}
                             onPress={() => setFilterStatus('warning')}
                             style={styles.chip}
-                            icon="alert-circle-outline"
+                            icon={({ size, color }) => <AlertCircle size={size} color={color} />}
                             showSelectedOverlay
                         >
                             Por Vencer
@@ -117,7 +119,7 @@ export default function ProductListScreen() {
                             selected={filterStatus === 'expired'}
                             onPress={() => setFilterStatus('expired')}
                             style={styles.chip}
-                            icon="close-circle-outline"
+                            icon={({ size, color }) => <XCircle size={size} color={color} />}
                             showSelectedOverlay
                         >
                             Vencidos
@@ -141,7 +143,7 @@ export default function ProductListScreen() {
             />
 
             <FAB
-                icon="plus"
+                icon={({ size, color }) => <Plus size={size} color={color} />}
                 style={[styles.fab, { backgroundColor: theme.colors.primary }]}
                 color="white"
                 onPress={handleAdd}
