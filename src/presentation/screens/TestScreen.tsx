@@ -26,9 +26,9 @@ export default function TestScreen() {
     const addDummyProduct = async () => {
         try {
             await db.insert(products).values({
-                name: 'Crema Natura ' + Math.floor(Math.random() * 1000),
-                quantity: 1,
-                expirationDate: new Date().toISOString(),
+                producto: 'Crema Natura ' + Math.floor(Math.random() * 1000),
+                stockActual: 1,
+                fechaCaducidad: new Date().toISOString(),
             });
             loadData();
         } catch (e) {
@@ -46,7 +46,7 @@ export default function TestScreen() {
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
                     <Card style={{ marginBottom: 10 }}>
-                        <Card.Title title={item.name} subtitle={`Qty: ${item.quantity}`} />
+                        <Card.Title title={item.producto} subtitle={`Qty: ${item.stockActual}`} />
                     </Card>
                 )}
             />

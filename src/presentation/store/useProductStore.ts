@@ -7,6 +7,8 @@ import { AddProduct } from '../../domain/usecases/AddProduct';
 import { DeleteProduct } from '../../domain/usecases/DeleteProduct';
 import { UpdateProduct } from '../../domain/usecases/UpdateProduct';
 import { GetOrCreateBox } from '../../domain/usecases/GetOrCreateBox';
+import { ClearDatabase } from '../../domain/usecases/ClearDatabase';
+import { ImportProducts, ProductImportInput, DuplicateStrategy } from '../../domain/usecases/ImportProducts';
 
 // Dependency Injection (Simple implementation)
 const productRepository = new ProductRepositoryImpl();
@@ -17,6 +19,8 @@ const addProductUseCase = new AddProduct(productRepository);
 const updateProductUseCase = new UpdateProduct(productRepository);
 const deleteProductUseCase = new DeleteProduct(productRepository);
 const getOrCreateBoxUseCase = new GetOrCreateBox(boxRepository);
+const clearDatabaseUseCase = new ClearDatabase(productRepository, boxRepository);
+const importProductsUseCase = new ImportProducts(productRepository, boxRepository);
 
 interface ProductState {
     products: Product[];
@@ -25,45 +29,52 @@ interface ProductState {
 
     loadProducts: () => Promise<void>;
     addProduct: (product: {
-        name: string;
-        quantity: number;
-        expirationDate: string | null;
-        brand?: string;
-        category?: string;
+        producto: string;
+        stockActual: number;
+        fechaCaducidad: string | null;
+        marca?: string;
+        linea?: string;
         boxName?: string;
+        cantidadInicial?: number;
+        cantidadVendida?: number;
+        fechaVenta?: string | null;
+        estado?: string | null;
+        unidadMedida?: string | null;
     }) => Promise<void>;
     editProduct: (id: number, product: Partial<Product> & { boxName?: string }) => Promise<void>;
-    deleteProduct: (id: number) => Promise<void>; // Renamed from removeProduct
-    updateProductQuantity: (id: number, change: number) => Promise<void>;
-    getUniqueBrands: () => string[];
-    getUniqueCategories: () => string[];
-    getUniqueNames: () => string[];
+    deleteProduct: (id: number) => Promise<void>;
+    updateProductStock: (id: number, change: number) => Promise<void>;
+    wipeDatabase: () => Promise<void>;
+    getUniqueMarcas: () => string[];
+    getUniqueLineas: () => string[];
+    getUniqueProductos: () => string[];
 
     // Search
     searchQuery: string;
     setSearchQuery: (query: string) => void;
     getFilteredProducts: () => Product[];
+    importProducts: (products: ProductImportInput[], strategy: DuplicateStrategy) => Promise<{ inserted: number; updated: number; ignored: number }>;
 }
 
 export const useProductStore = create<ProductState>((set, get) => ({
     products: [],
     isLoading: false,
-    error: null, // Initialize error state
-    searchQuery: '', // Initialize search query
+    error: null,
+    searchQuery: '',
 
-    loadProducts: async () => { // Renamed from fetchProducts
-        set({ isLoading: true, error: null }); // Reset error on new load
+    loadProducts: async () => {
+        set({ isLoading: true, error: null });
         try {
             const products = await getProductsUseCase.execute();
             set({ products, isLoading: false });
         } catch (error) {
-            console.error('Failed to load products:', error); // Updated log message
-            set({ error: (error as Error).message, isLoading: false }); // Set error state
+            console.error('Failed to load products:', error);
+            set({ error: (error as Error).message, isLoading: false });
         }
     },
 
-    addProduct: async (productData) => { // Changed parameter to productData
-        set({ isLoading: true, error: null }); // Reset error on new add
+    addProduct: async (productData) => {
+        set({ isLoading: true, error: null });
         try {
             let boxId = null;
             if (productData.boxName) {
@@ -72,15 +83,18 @@ export const useProductStore = create<ProductState>((set, get) => ({
             }
 
             const newProduct = await addProductUseCase.execute({
-                name: productData.name,
-                quantity: productData.quantity,
-                expirationDate: productData.expirationDate,
-                brand: productData.brand || null,
-                category: productData.category || null,
+                producto: productData.producto,
+                stockActual: productData.stockActual,
+                fechaCaducidad: productData.fechaCaducidad,
+                marca: productData.marca || null,
+                linea: productData.linea || null,
                 boxId,
-                unitMeasure: 'units',
-                status: 'active',
-                image: null
+                unidadMedida: productData.unidadMedida || 'units',
+                estado: productData.estado || 'active',
+                image: null,
+                cantidadInicial: productData.cantidadInicial !== undefined ? productData.cantidadInicial : productData.stockActual,
+                cantidadVendida: productData.cantidadVendida !== undefined ? productData.cantidadVendida : 0,
+                fechaVenta: productData.fechaVenta || null,
             });
 
             // Manually attach boxName for immediate UI update since create() doesn't return joined fields
@@ -92,77 +106,66 @@ export const useProductStore = create<ProductState>((set, get) => ({
             set((state) => ({ products: [productWithBox, ...state.products], isLoading: false }));
         } catch (error) {
             console.error('Failed to add product:', error);
-            set({ error: (error as Error).message, isLoading: false }); // Set error state
+            set({ error: (error as Error).message, isLoading: false });
         }
     },
 
-    deleteProduct: async (id) => { // Renamed from removeProduct
-        set({ isLoading: true, error: null }); // Reset error on new delete
+    deleteProduct: async (id) => {
+        set({ isLoading: true, error: null });
         try {
             await deleteProductUseCase.execute(id);
             set((state) => ({
                 products: state.products.filter((p) => p.id !== id),
-                isLoading: false, // Set isLoading to false here
+                isLoading: false,
             }));
         } catch (error) {
             console.error('Failed to delete product:', error);
-            set({ error: (error as Error).message, isLoading: false }); // Set error state
+            set({ error: (error as Error).message, isLoading: false });
         }
     },
 
-    getUniqueBrands: () => {
+    getUniqueMarcas: () => {
         const products = get().products;
-        const brands = new Set(products.map(p => p.brand).filter(Boolean));
-        return Array.from(brands) as string[];
+        const marcas = new Set(products.map(p => p.marca).filter(Boolean));
+        return Array.from(marcas) as string[];
     },
 
-    getUniqueCategories: () => {
+    getUniqueLineas: () => {
         const products = get().products;
-        const categories = new Set(products.map(p => p.category).filter(Boolean));
-        return Array.from(categories) as string[];
+        const lineas = new Set(products.map(p => p.linea).filter(Boolean));
+        return Array.from(lineas) as string[];
     },
-    getUniqueNames: () => {
+
+    getUniqueProductos: () => {
         const products = get().products;
-        const names = new Set(products.map(p => p.name).filter(Boolean));
-        return Array.from(names) as string[];
+        const productos = new Set(products.map(p => p.producto).filter(Boolean));
+        return Array.from(productos) as string[];
     },
 
     setSearchQuery: (query) => set({ searchQuery: query }),
 
-    updateProductQuantity: async (id, change) => {
+    updateProductStock: async (id, change) => {
         const product = get().products.find(p => p.id === id);
         if (!product) return;
 
-        const newQuantity = Math.max(0, product.quantity + change);
-        if (newQuantity === product.quantity) return; // No change
+        const newStock = Math.max(0, product.stockActual + change);
+        if (newStock === product.stockActual) return;
 
         // Optimistic update
         set((state) => ({
             products: state.products.map(p =>
-                p.id === id ? { ...p, quantity: newQuantity } : p
+                p.id === id ? { ...p, stockActual: newStock } : p
             )
         }));
 
         try {
-            // We reuse addProductUseCase logic or create a new one? 
-            // Ideally we should have an UpdateProduct usecase.
-            // For now, let's use a direct repository call via a new generic update action or similar.
-            // But wait, we don't have the repository exposed here directly easily without breaking clean arch strictly.
-            // Let's add an UpdateProduct usecase properly or just use the repository instance we have in the file.
-
-            // Since we defined the repository instances at the top of this file:
-            // const productRepository = new ProductRepositoryImpl();
-            // We can just call update directly for now to be pragmatic, or add the usecase. 
-            // Detailed instructions said: "Update repository/usecase to support partial updates".
-            // The repository already supports partial updates.
-
-            await productRepository.update(id, { quantity: newQuantity });
+            await productRepository.update(id, { stockActual: newStock });
         } catch (error) {
-            console.error('Failed to update quantity:', error);
+            console.error('Failed to update stock:', error);
             // Rollback
             set((state) => ({
                 products: state.products.map(p =>
-                    p.id === id ? { ...p, quantity: product.quantity } : p
+                    p.id === id ? { ...p, stockActual: product.stockActual } : p
                 )
             }));
         }
@@ -172,35 +175,24 @@ export const useProductStore = create<ProductState>((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             let boxId = undefined;
-            // Only process box if provided (it might be unchanged, but if passed as string we check)
             if (productData.boxName !== undefined) {
                 if (productData.boxName) {
                     const box = await getOrCreateBoxUseCase.execute(productData.boxName);
                     boxId = box.id;
                 } else {
-                    boxId = null; // Explicitly set to null if empty string passed
+                    boxId = null;
                 }
             }
 
             const updateData: Partial<Product> = {
                 ...productData,
-                boxId: boxId !== undefined ? boxId : undefined, // Only update if changed
+                boxId: boxId !== undefined ? boxId : undefined,
             };
 
-            // Remove boxName from updateData as it's not in Product table directly (it's joined)
             delete (updateData as any).boxName;
 
-            // Logic for handling undefined/null values for partial updates is handled by repository
-            // But we need to be careful not to overwrite with undefined if we want to keep existing.
-            // The UI should pass all fields or only changed ones. 
-            // Ideally we pass everything from the form.
-
             await updateProductUseCase.execute(id, updateData);
-
-            // Refresh list to get fresh joins (box names etc)
-            // Or update local state optimistically
             await get().loadProducts();
-
             set({ isLoading: false });
         } catch (error) {
             console.error('Failed to edit product:', error);
@@ -208,17 +200,43 @@ export const useProductStore = create<ProductState>((set, get) => ({
         }
     },
 
-    getFilteredProducts: () => { // New selector for filtered products
+    getFilteredProducts: () => {
         const { products, searchQuery } = get();
         if (!searchQuery) return products;
 
         const lowerQuery = searchQuery.toLowerCase();
         return products.filter(product => {
-            const nameMatch = product.name?.toLowerCase().includes(lowerQuery);
-            const brandMatch = product.brand?.toLowerCase().includes(lowerQuery);
-            const categoryMatch = product.category?.toLowerCase().includes(lowerQuery);
-            const boxMatch = product.boxName?.toLowerCase().includes(lowerQuery); // Search by box name too
+            const nameMatch = product.producto?.toLowerCase().includes(lowerQuery);
+            const brandMatch = product.marca?.toLowerCase().includes(lowerQuery);
+            const categoryMatch = product.linea?.toLowerCase().includes(lowerQuery);
+            const boxMatch = product.boxName?.toLowerCase().includes(lowerQuery);
             return nameMatch || brandMatch || categoryMatch || boxMatch;
         });
+    },
+
+    importProducts: async (productsData, strategy) => {
+        set({ isLoading: true, error: null });
+        try {
+            const result = await importProductsUseCase.execute(productsData, strategy);
+            await get().loadProducts();
+            set({ isLoading: false });
+            return result;
+        } catch (error) {
+            console.error('Failed to import products:', error);
+            set({ error: (error as Error).message, isLoading: false });
+            throw error;
+        }
+    },
+
+    wipeDatabase: async () => {
+        set({ isLoading: true, error: null });
+        try {
+            await clearDatabaseUseCase.execute();
+            set({ products: [], isLoading: false });
+        } catch (error) {
+            console.error('Failed to wipe database:', error);
+            set({ error: (error as Error).message, isLoading: false });
+            throw error;
+        }
     },
 }));

@@ -1,5 +1,5 @@
-import { eq } from 'drizzle-orm';
-import { db } from '../local/database';
+import { eq, gt } from 'drizzle-orm';
+import { db, expoDb } from '../local/database';
 import { boxes } from '../local/schema';
 import { Box } from '../../domain/entities/Box';
 import { BoxRepository } from '../../domain/repositories/BoxRepository';
@@ -38,5 +38,9 @@ export class BoxRepositoryImpl implements BoxRepository {
             createdAt: result[0].createdAt,
             updatedAt: result[0].updatedAt
         };
+    }
+
+    async clearAll(): Promise<void> {
+        await expoDb.execAsync('DELETE FROM boxes;');
     }
 }

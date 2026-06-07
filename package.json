@@ -10,10 +10,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "drizzle-orm": "^0.45.1",
-    "expo": "~54.0.33",
+    "drizzle-orm": "^0.45.2",
+    "expo": "~54.0.35",
     "expo-constants": "~18.0.13",
-    "expo-linking": "~8.0.11",
+    "expo-document-picker": "~14.0.8",
+    "expo-file-system": "~19.0.23",
+    "expo-linking": "~8.0.12",
     "expo-router": "~6.0.23",
     "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~3.0.9",
@@ -25,6 +27,7 @@
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
@@ -34,5 +37,46 @@
     "drizzle-kit": "^0.31.9",
     "typescript": "~5.9.2"
   },
+  "overrides": {
+    "postcss": "^8.5.15",
+    "yaml": "^2.8.3",
+    "node-forge": "^1.4.0",
+    "tar": "^7.5.8",
+    "undici": "^6.24.0",
+    "uuid": "^11.1.1",
+    "@xmldom/xmldom": "^0.8.13",
+    "brace-expansion": "^5.0.5",
+    "minimatch": "^10.2.3",
+    "picomatch": "^4.0.4",
+    "@expo/cli": {
+      "picomatch": "^3.0.2"
+    },
+    "metro-file-map": {
+      "picomatch": "^2.3.2"
+    },
+    "anymatch": {
+      "picomatch": "^2.3.2"
+    },
+    "jest-util": {
+      "picomatch": "^2.3.2"
+    },
+    "tinyglobby": {
+      "picomatch": "^4.0.4"
+    },
+    "fdir": {
+      "picomatch": "^4.0.4"
+    },
+    "glob": {
+      "minimatch": "^3.1.5",
+      "brace-expansion": "^1.1.13"
+    },
+    "test-exclude": {
+      "minimatch": "^3.1.5",
+      "brace-expansion": "^1.1.13"
+    },
+    "esbuild": "^0.25.12"
+  },
   "private": true
 }
+
+

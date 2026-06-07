@@ -18,37 +18,44 @@ export default function AddProductModal({ visible, onDismiss, productToEdit }: A
     const addProduct = useProductStore((state) => state.addProduct);
     const editProduct = useProductStore((state) => state.editProduct);
     const isLoading = useProductStore((state) => state.isLoading);
-    const getUniqueBrands = useProductStore((state) => state.getUniqueBrands);
-    const getUniqueCategories = useProductStore((state) => state.getUniqueCategories);
-    const getUniqueNames = useProductStore((state) => state.getUniqueNames);
+    const getUniqueMarcas = useProductStore((state) => state.getUniqueMarcas);
+    const getUniqueLineas = useProductStore((state) => state.getUniqueLineas);
+    const getUniqueProductos = useProductStore((state) => state.getUniqueProductos);
 
-    const [name, setName] = useState('');
-    const [brand, setBrand] = useState('');
-    const [category, setCategory] = useState('');
+    const [producto, setProducto] = useState('');
+    const [marca, setMarca] = useState('');
+    const [linea, setLinea] = useState('');
     const [boxName, setBoxName] = useState('');
-    const [quantity, setQuantity] = useState('');
-    const [expirationDate, setExpirationDate] = useState('');
+    const [stockActual, setStockActual] = useState('');
+    const [fechaCaducidad, setFechaCaducidad] = useState('');
+    const [cantidadInicial, setCantidadInicial] = useState('');
+    const [cantidadVendida, setCantidadVendida] = useState('');
+    const [fechaVenta, setFechaVenta] = useState('');
+    const [estado, setEstado] = useState('');
+    const [unidadMedida, setUnidadMedida] = useState('');
     const [showDatePicker, setShowDatePicker] = useState(false);
 
     // Effect to pre-fill form when editing
     useEffect(() => {
         if (visible) {
             if (productToEdit) {
-                setName(productToEdit.name);
-                setBrand(productToEdit.brand || '');
-                setCategory(productToEdit.category || '');
-                // Handle box display logic reverse from what we did in card
-                // if it has specific boxName joined, use it. 
-                // We stored it in state as string, so we just set it.
+                setProducto(productToEdit.producto);
+                setMarca(productToEdit.marca || '');
+                setLinea(productToEdit.linea || '');
                 setBoxName(productToEdit.boxName || '');
-                setQuantity(productToEdit.quantity.toString());
+                setStockActual(productToEdit.stockActual.toString());
+                setCantidadInicial(productToEdit.cantidadInicial?.toString() || '');
+                setCantidadVendida(productToEdit.cantidadVendida?.toString() || '');
+                setFechaVenta(productToEdit.fechaVenta || '');
+                setEstado(productToEdit.estado || '');
+                setUnidadMedida(productToEdit.unidadMedida || '');
 
                 // Convert YYYY-MM-DD back to MM/YY for display if needed
-                if (productToEdit.expirationDate) {
-                    const [year, month] = productToEdit.expirationDate.split('-');
-                    setExpirationDate(`${month}/${year.slice(2)}`);
+                if (productToEdit.fechaCaducidad) {
+                    const [year, month] = productToEdit.fechaCaducidad.split('-');
+                    setFechaCaducidad(`${month}/${year.slice(2)}`);
                 } else {
-                    setExpirationDate('');
+                    setFechaCaducidad('');
                 }
             } else {
                 resetForm();
@@ -58,12 +65,17 @@ export default function AddProductModal({ visible, onDismiss, productToEdit }: A
 
     // reset form state
     const resetForm = () => {
-        setName('');
-        setBrand('');
-        setCategory('');
+        setProducto('');
+        setMarca('');
+        setLinea('');
         setBoxName('');
-        setQuantity('');
-        setExpirationDate('');
+        setStockActual('');
+        setFechaCaducidad('');
+        setCantidadInicial('');
+        setCantidadVendida('');
+        setFechaVenta('');
+        setEstado('');
+        setUnidadMedida('');
     };
 
     const handleDismiss = () => {
@@ -76,37 +88,63 @@ export default function AddProductModal({ visible, onDismiss, productToEdit }: A
         setShowDatePicker(true);
     };
 
+    const handleInitialQtyChange = (val: string) => {
+        setCantidadInicial(val);
+        const init = parseInt(val, 10) || 0;
+        const sold = parseInt(cantidadVendida, 10) || 0;
+        setStockActual(Math.max(0, init - sold).toString());
+    };
+
+    const handleSoldQtyChange = (val: string) => {
+        setCantidadVendida(val);
+        const init = parseInt(cantidadInicial, 10) || 0;
+        const sold = parseInt(val, 10) || 0;
+        setStockActual(Math.max(0, init - sold).toString());
+    };
+
     const handleSubmit = async () => {
-        if (!name) return;
+        if (!producto) return;
 
         // Convert MM/YY to YYYY-MM-DD
         let isoDate = null;
-        if (expirationDate.length === 5) {
-            const [month, year] = expirationDate.split('/');
+        if (fechaCaducidad.length === 5) {
+            const [month, year] = fechaCaducidad.split('/');
             const fullYear = `20${year}`;
             // Get last day of the month
             const lastDay = new Date(parseInt(fullYear), parseInt(month), 0).getDate();
             isoDate = `${fullYear}-${month}-${lastDay}`;
         }
 
+        const initQty = parseInt(cantidadInicial);
+        const sldQty = parseInt(cantidadVendida);
+
         if (productToEdit) {
             await editProduct(productToEdit.id, {
-                name,
-                brand: brand || undefined, // Send undefined if empty to avoid overwriting with empty string if not intended? Or empty string is null?
-                // Domain usually treats empty string as value. Let's send what user typed.
-                category: category || undefined,
-                boxName: boxName, // Logic in store handles this
-                quantity: parseInt(quantity) || 0,
-                expirationDate: isoDate,
+                producto,
+                marca: marca || undefined,
+                linea: linea || undefined,
+                boxName: boxName,
+                stockActual: parseInt(stockActual) || 0,
+                fechaCaducidad: isoDate,
+                cantidadInicial: isNaN(initQty) ? undefined : initQty,
+                cantidadVendida: isNaN(sldQty) ? undefined : sldQty,
+                fechaVenta: fechaVenta || null,
+                estado: estado || null,
+                unidadMedida: unidadMedida || null,
             });
         } else {
             await addProduct({
-                name,
-                brand,
-                category,
+                producto,
+                marca,
+                linea,
                 boxName,
-                quantity: parseInt(quantity) || 0,
-                expirationDate: isoDate,
+                stockActual: parseInt(stockActual) || 0,
+                fechaCaducidad: isoDate,
+                cantidadInicial: isNaN(initQty) ? undefined : initQty,
+                cantidadVendida: isNaN(sldQty) ? undefined : sldQty,
+                fechaVenta: fechaVenta || null,
+                estado: estado || null,
+                unidadMedida: unidadMedida || null,
             });
         }
 
@@ -134,31 +172,31 @@ export default function AddProductModal({ visible, onDismiss, productToEdit }: A
                         <View style={[styles.inputContainer, { zIndex: 110 }]}>
                             <AutocompleteInput
                                 label="Nombre del Producto"
-                                value={name}
-                                onChangeText={setName}
-                                data={getUniqueNames()}
+                                value={producto}
+                                onChangeText={setProducto}
+                                data={getUniqueProductos()}
                                 style={styles.input}
                             />
                         </View>
 
-                        {/* High zIndex for Brand */}
+                        {/* High zIndex for Marca */}
                         <View style={[styles.inputContainer, { zIndex: 100 }]}>
                             <AutocompleteInput
                                 label="Marca (ej. Natura)"
-                                value={brand}
-                                onChangeText={setBrand}
-                                data={getUniqueBrands()}
+                                value={marca}
+                                onChangeText={setMarca}
+                                data={getUniqueMarcas()}
                                 style={styles.input}
                             />
                         </View>
 
-                        {/* Medium zIndex for Category */}
+                        {/* Medium zIndex for Línea */}
                         <View style={[styles.inputContainer, { zIndex: 90 }]}>
                             <AutocompleteInput
-                                label="Categoría (ej. Cremas)"
-                                value={category}
-                                onChangeText={setCategory}
-                                data={getUniqueCategories()}
+                                label="Línea (ej. Ekos)"
+                                value={linea}
+                                onChangeText={setLinea}
+                                data={getUniqueLineas()}
                                 style={styles.input}
                             />
                         </View>
@@ -175,11 +213,43 @@ export default function AddProductModal({ visible, onDismiss, productToEdit }: A
 
                         <View style={styles.inputContainer}>
                             <TextInput
-                                label="Cantidad"
-                                value={quantity}
-                                onChangeText={setQuantity}
+                                label="Cantidad Inicial (Recibida)"
+                                value={cantidadInicial}
+                                onChangeText={handleInitialQtyChange}
                                 mode="outlined"
                                 keyboardType="numeric"
+                                style={styles.input}
+                            />
+                        </View>
+
+                        <View style={styles.inputContainer}>
+                            <TextInput
+                                label="Cantidad Vendida"
+                                value={cantidadVendida}
+                                onChangeText={handleSoldQtyChange}
+                                mode="outlined"
+                                keyboardType="numeric"
+                                style={styles.input}
+                            />
+                        </View>
+
+                        <View style={styles.inputContainer}>
+                            <TextInput
+                                label="Stock Actual (Auto-calculado)"
+                                value={stockActual}
+                                onChangeText={setStockActual}
+                                mode="outlined"
+                                keyboardType="numeric"
+                                style={styles.input}
+                            />
+                        </View>
+
+                        <View style={styles.inputContainer}>
+                            <TextInput
+                                label="Unidad de Medida (ej. 300ml, 200g)"
+                                value={unidadMedida}
+                                onChangeText={setUnidadMedida}
+                                mode="outlined"
                                 style={styles.input}
                             />
                         </View>
@@ -188,14 +258,34 @@ export default function AddProductModal({ visible, onDismiss, productToEdit }: A
                             <TouchableOpacity onPress={handleOpenDatePicker}>
                                 <TextInput
                                     label="Fecha de Caducidad (MM/AA)"
-                                    value={expirationDate}
+                                    value={fechaCaducidad}
                                     mode="outlined"
                                     style={styles.input}
                                     placeholder="Seleccionar Fecha"
-                                    editable={false} // Disable typing, force picker
+                                    editable={false}
                                     right={<TextInput.Icon icon={() => <Calendar size={24} color={theme.colors.onSurface} />} onPress={handleOpenDatePicker} />}
                                 />
                             </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.inputContainer}>
+                            <TextInput
+                                label="Fecha de Venta"
+                                value={fechaVenta}
+                                onChangeText={setFechaVenta}
+                                mode="outlined"
+                                style={styles.input}
+                            />
+                        </View>
+
+                        <View style={styles.inputContainer}>
+                            <TextInput
+                                label="Estado (ej. Disponible, Agotado)"
+                                value={estado}
+                                onChangeText={setEstado}
+                                mode="outlined"
+                                style={styles.input}
+                            />
                         </View>
 
                         <View style={styles.actions}>
@@ -204,7 +294,7 @@ export default function AddProductModal({ visible, onDismiss, productToEdit }: A
                                 mode="contained"
                                 onPress={handleSubmit}
                                 loading={isLoading}
-                                disabled={isLoading || !name}
+                                disabled={isLoading || !producto}
                                 style={styles.button}
                             >
                                 {isEditing ? 'Guardar Cambios' : 'Guardar'}
@@ -216,8 +306,8 @@ export default function AddProductModal({ visible, onDismiss, productToEdit }: A
                 <MonthYearPicker
                     visible={showDatePicker}
                     onDismiss={() => setShowDatePicker(false)}
-                    onSelect={setExpirationDate}
-                    currentValue={expirationDate}
+                    onSelect={setFechaCaducidad}
+                    currentValue={fechaCaducidad}
                 />
             </Modal>
         </Portal>
@@ -230,12 +320,10 @@ const styles = StyleSheet.create({
         margin: 20,
         borderRadius: 8,
         maxHeight: '90%',
-        flex: 1, // Ensure modal takes space
+        flex: 1,
     },
     inputContainer: {
         marginBottom: 12,
-        // Default zIndex is 0. 
-        // We override this inline for Autocomplete inputs.
     },
     input: {
         backgroundColor: 'white',
@@ -244,7 +332,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'flex-end',
         marginTop: 16,
-        marginBottom: 20, // Extra space at bottom
+        marginBottom: 20,
     },
     button: {
         marginLeft: 8,
