@@ -55,7 +55,7 @@
 
 ## 📦 Cómo Generar la App Standalone (Instalar Fijo sin Expo Go)
 
-Para distribuir e instalar la app directamente en cualquier celular (como el de tu mamá o conocidos) sin depender de la aplicación Expo Go, puedes generar un archivo instalador nativo (**APK** para Android o compilar para **iOS**).
+Para distribuir e instalar la app directamente en dispositivos de usuarios finales sin depender de la aplicación Expo Go, puedes generar un archivo instalador nativo (**APK** para Android o compilar para **iOS**).
 
 Usaremos **EAS Build** (Expo Application Services), el servicio en la nube oficial de Expo.
 
@@ -94,7 +94,7 @@ Para compartir con usuarios de iPhone, Apple requiere un flujo diferente:
   ```bash
   eas build --platform ios --profile production
   ```
-  Una vez completada la compilación, se puede enviar directamente a TestFlight para invitar a tus conocidos por correo electrónico a probar la app en sus iPhones.
+  Una vez completada la compilación, se puede enviar directamente a TestFlight para invitar a usuarios de prueba (testers) por correo electrónico a probar la aplicación en sus iPhones.
 
 ---
 
